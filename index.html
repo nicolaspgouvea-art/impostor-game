@@ -1,1 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d12" />
+  <title>Impostor Game</title>
+  <style>
+    :root{
+      --bg:#0b0d12;
+      --bg-2:#10131a;
+      --panel:#151922;
+      --panel-2:#1b202c;
+      --text:#f4f4f5;
+      --muted:#8b8f9c;
+      --line:#272d3a;
+      --accent:#e53935;
+      --accent-2:#ff5a55;
+      --success:#36c98f;
+      --warning:#f3b84b;
+      --shadow:0 18px 60px rgba(0,0,0,.34);
+      --radius:22px;
+      --radius-sm:15px;
+    }
 
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{
+      min-height:100svh;
+      overflow-x:hidden;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(229,57,53,.11), transparent 34%),
+        linear-gradient(180deg,#0b0d12 0%,#0c0f15 100%);
+    }
+
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .app{width:min(100%,520px);margin:0 auto;min-height:100svh;position:relative;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom)}
+    .screen{display:none;min-height:100svh;padding:22px 0 30px;animation:screenIn .32s ease}
+    .screen.active{display:flex;flex-direction:column}
+    @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
+    .topbar-title{font-size:14px;font-weight:800;letter-spacing:.14em;color:var(--muted)}
+    .icon-btn{
+      width:44px;height:44px;border-radius:14px;border:1px solid var(--line);
+      background:rgba(21,25,34,.88);color:var(--text);display:grid;place-items:center;
+    }
+    .icon-btn:active{transform:scale(.98)}
+
+    .brand-wrap{margin:auto 0 26px;text-align:center}
+    .brand-mark{
+      width:78px;height:78px;border-radius:24px;margin:0 auto 22px;position:relative;
+      background:linear-gradient(145deg,#1b202c,#11141c);border:1px solid #2a3140;box-shadow:var(--shadow);
+      display:grid;place-items:center;
+    }
+    .brand-mark:before,.brand-mark:after{content:"";position:absolute;background:var(--accent);border-radius:99px}
+    .brand-mark:before{width:38px;height:8px;transform:rotate(45deg)}
+    .brand-mark:after{width:38px;height:8px;transform:rotate(-45deg)}
+    .brand{font-size:42px;line-height:1;font-weight:1000;letter-spacing:-.045em;margin:0}
+    .brand span{color:var(--accent)}
+    .subtitle{color:var(--muted);font-size:15px;line-height:1.55;margin:14px auto 0;max-width:320px}
+
+    .stack{display:grid;gap:12px}
+    .btn{
+      border:none;border-radius:17px;min-height:56px;padding:0 18px;font-weight:900;
+      display:flex;align-items:center;justify-content:center;gap:10px;transition:.18s ease;
+    }
+    .btn:active{transform:translateY(1px) scale(.995)}
+    .btn-primary{background:var(--text);color:#0d0f14}
+    .btn-dark{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+    .btn-danger{background:var(--accent);color:white;box-shadow:0 12px 34px rgba(229,57,53,.22)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+    .btn[disabled]{opacity:.38;cursor:not-allowed}
+
+    .field{display:grid;gap:8px}
+    .label{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .input{
+      width:100%;height:56px;border-radius:16px;border:1px solid var(--line);background:var(--panel);
+      color:var(--text);padding:0 16px;outline:none;font-size:16px;
+    }
+    .input:focus{border-color:#4b5365;box-shadow:0 0 0 4px rgba(255,255,255,.035)}
+    .code-input{text-align:center;letter-spacing:.28em;font-size:24px;font-weight:950;padding-left:22px}
+
+    .card{background:rgba(21,25,34,.92);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 12px 38px rgba(0,0,0,.12)}
+    .card-title{font-weight:950;font-size:16px;margin:0 0 4px}
+    .muted{color:var(--muted)}
+
+    .room-code-card{text-align:center;padding:22px}
+    .room-code-label{font-size:11px;font-weight:900;letter-spacing:.15em;color:var(--muted)}
+    .room-code{font-size:34px;font-weight:1000;letter-spacing:.16em;margin:8px 0 4px}
+    .copy-hint{font-size:12px;color:var(--muted)}
+
+    .section-head{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 10px}
+    .section-head h3{margin:0;font-size:14px}
+    .count-pill{font-size:12px;font-weight:900;color:var(--muted);border:1px solid var(--line);padding:5px 9px;border-radius:999px}
+
+    .players{display:grid;gap:10px}
+    .player{
+      display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);
+      border-radius:16px;background:var(--panel);
+    }
+    .avatar{
+      width:40px;height:40px;border-radius:13px;background:linear-gradient(145deg,#242b39,#161b25);
+      display:grid;place-items:center;font-weight:950;color:#d9dce4;border:1px solid #303747;
+    }
+    .player-info{flex:1;min-width:0}
+    .player-name{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .player-meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .host-badge{font-size:11px;font-weight:900;padding:5px 8px;border-radius:999px;background:rgba(243,184,75,.11);color:var(--warning);border:1px solid rgba(243,184,75,.18)}
+    .online-dot{width:8px;height:8px;background:var(--success);border-radius:50%;box-shadow:0 0 0 4px rgba(54,201,143,.09)}
+
+    .footer-action{margin-top:auto;padding-top:20px}
+
+    .reveal-wrap{margin:auto 0;text-align:center}
+    .eyebrow{font-size:12px;font-weight:950;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+    .role-card{
+      margin:24px 0;background:linear-gradient(180deg,#181d28,#121620);
+      border:1px solid var(--line);border-radius:28px;padding:46px 20px;box-shadow:var(--shadow);
+      overflow:hidden;position:relative;
+    }
+    .role-card:before{
+      content:"";position:absolute;inset:-40% 15% auto;height:130px;
+      background:radial-gradient(circle,rgba(255,255,255,.08),transparent 65%);
+    }
+    .role-label{font-size:12px;color:var(--muted);letter-spacing:.13em;font-weight:900}
+    .role-word{font-size:44px;font-weight:1000;letter-spacing:-.035em;margin:10px 0 8px;word-break:break-word}
+    .role-word.impostor{color:var(--accent);text-shadow:0 0 35px rgba(229,57,53,.24)}
+    .role-help{font-size:14px;color:var(--muted);line-height:1.5;max-width:320px;margin:0 auto}
+
+    .status-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .round-pill,.turn-pill{
+      flex:1;border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:11px 12px;text-align:center;
+    }
+    .status-label{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--muted)}
+    .status-value{font-size:14px;font-weight:950;margin-top:3px}
+
+    .game-card{flex:1;min-height:380px;display:flex;flex-direction:column;padding:14px}
+    .game-head{display:flex;align-items:center;justify-content:space-between;padding:3px 2px 12px;border-bottom:1px solid var(--line)}
+    .game-head-left{display:flex;align-items:center;gap:10px}
+    .game-head .avatar{width:34px;height:34px;border-radius:11px;font-size:13px}
+    .game-head strong{font-size:14px}
+    .live{font-size:11px;color:var(--success);font-weight:900;display:flex;align-items:center;gap:6px}
+    .live i{width:7px;height:7px;background:var(--success);border-radius:50%;display:block;animation:pulse 1.35s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.72)}}
+
+    .messages{padding:16px 3px;display:grid;gap:12px;overflow:auto;max-height:46svh}
+    .msg{display:flex;gap:9px;align-items:flex-start}
+    .msg .mini{width:29px;height:29px;border-radius:9px;background:#242a36;display:grid;place-items:center;font-size:11px;font-weight:950;flex:0 0 auto}
+    .bubble{background:#1a1f2a;border:1px solid var(--line);border-radius:5px 15px 15px 15px;padding:9px 11px;max-width:82%}
+    .bubble.system{background:rgba(229,57,53,.07);border-color:rgba(229,57,53,.18)}
+    .msg-name{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:3px}
+    .msg-text{font-size:14px;line-height:1.35}
+    .system-line{display:flex;align-items:center;gap:8px;color:#c6c9d2;font-size:12px;font-weight:800;padding:4px 0}
+    .system-line:before,.system-line:after{content:"";height:1px;background:var(--line);flex:1}
+
+    .composer{margin-top:auto;border-top:1px solid var(--line);padding-top:13px}
+    .composer-row{display:flex;gap:9px}
+    .composer .input{height:50px}
+    .send-btn{width:52px;height:50px;border:none;border-radius:15px;background:var(--text);color:#0d0f14;font-weight:1000}
+    .guess-btn{margin-top:9px;width:100%;height:44px;border-radius:14px;background:rgba(229,57,53,.09);border:1px solid rgba(229,57,53,.2);color:var(--accent-2);font-weight:900}
+
+    .vote-open{margin-top:12px;border:1px dashed #343b4a;border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .vote-open small{color:var(--muted);line-height:1.35}
+    .vote-open button{border:none;background:transparent;color:var(--text);font-weight:900}
+
+    .vote-list{display:grid;gap:10px;margin-top:16px}
+    .vote-option{position:relative}
+    .vote-option input{position:absolute;opacity:0;pointer-events:none}
+    .vote-label{display:flex;align-items:center;gap:12px;padding:14px;border-radius:17px;border:1px solid var(--line);background:var(--panel);transition:.16s ease}
+    .vote-option input:checked + .vote-label{border-color:rgba(229,57,53,.6);box-shadow:0 0 0 3px rgba(229,57,53,.08)}
+    .vote-check{margin-left:auto;width:20px;height:20px;border:1px solid #41495a;border-radius:50%;display:grid;place-items:center}
+    .vote-option input:checked + .vote-label .vote-check{border-color:var(--accent);background:var(--accent)}
+    .vote-check:after{content:"";width:6px;height:6px;border-radius:50%;background:white;opacity:0}
+    .vote-option input:checked + .vote-label .vote-check:after{opacity:1}
+
+    .result-wrap{margin:auto 0;text-align:center}
+    .result-orb{width:96px;height:96px;margin:0 auto 24px;border-radius:28px;background:rgba(229,57,53,.09);border:1px solid rgba(229,57,53,.2);display:grid;place-items:center;position:relative}
+    .result-orb:before,.result-orb:after{content:"";position:absolute;width:44px;height:9px;background:var(--accent);border-radius:99px}
+    .result-orb:before{transform:rotate(45deg)}
+    .result-orb:after{transform:rotate(-45deg)}
+    .result-title{font-size:32px;font-weight:1000;letter-spacing:-.035em;margin:0}
+    .result-sub{color:var(--muted);line-height:1.55;margin:12px auto 0;max-width:320px}
+    .result-secret{margin:22px 0;padding:18px;border-radius:18px;border:1px solid var(--line);background:var(--panel)}
+    .result-secret span{display:block;font-size:11px;color:var(--muted);font-weight:900;letter-spacing:.13em}
+    .result-secret strong{font-size:26px;display:block;margin-top:5px}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);backdrop-filter:blur(7px);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:18px}
+    .modal-backdrop.show{display:flex}
+    .modal{width:min(100%,520px);background:#151922;border:1px solid var(--line);border-radius:25px;padding:20px;box-shadow:var(--shadow);animation:sheetUp .22s ease}
+    @keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+    .modal h3{margin:0 0 8px;font-size:20px}
+    .modal p{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.45}
+    .attempts{display:flex;gap:6px;margin:10px 0 16px}
+    .attempt-dot{height:6px;flex:1;border-radius:99px;background:var(--accent)}
+
+    .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,18px);background:#202632;border:1px solid #343b4a;color:var(--text);padding:11px 15px;border-radius:13px;font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s ease;z-index:80;white-space:nowrap}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .tiny-note{text-align:center;color:var(--muted);font-size:11px;margin-top:14px}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="screen active" id="screen-home">
+      <div class="brand-wrap">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <h1 class="brand">IMPOST<span>OR</span></h1>
+        <p class="subtitle">Descubra quem está fingindo antes que o impostor descubra a palavra.</p>
+      </div>
+      <div class="stack">
+        <button class="btn btn-primary" onclick="showScreen('create')">Criar sala</button>
+        <button class="btn btn-dark" onclick="showScreen('join')">Entrar em sala</button>
+      </div>
+      <p class="tiny-note">Protótipo visual do frontend • sem backend conectado ainda</p>
+    </section>
+
+    <section class="screen" id="screen-create">
+      <div class="topbar"><button class="icon-btn" onclick="showScreen('home')">←</button><div class="topbar-title">CRIAR SALA</div><div style="width:44px"></div></div>
+      <div class="card" style="margin-top:18px">
+        <h2 style="margin:0 0 8px;font-size:24px">Crie sua partida</h2>
+        <p class="muted" style="margin:0 0 22px;line-height:1.5">Escolha seu nome. O código da sala será gerado automaticamente.</p>
+        <div class="field"><label class="label" for="create-name">Seu nome</label><input class="input" id="create-name" maxlength="18" placeholder="Ex.: Nicolas" value="Nicolas"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="createRoom()">Criar sala</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-join">
+      <div class="topbar"><button class="icon-btn" onclick="showScreen('home')">←</button><div class="topbar-title">ENTRAR NA SALA</div><div style="width:44px"></div></div>
+      <div class="card" style="margin-top:18px">
+        <h2 style="margin:0 0 8px;font-size:24px">Entre na partida</h2>
+        <p class="muted" style="margin:0 0 22px;line-height:1.5">Digite o código de 6 números enviado pelo host.</p>
+        <div class="stack">
+          <div class="field"><label class="label" for="join-code">Código da sala</label><input class="input code-input" id="join-code" inputmode="numeric" maxlength="6" placeholder="000000"></div>
+          <div class="field"><label class="label" for="join-name">Seu nome</label><input class="input" id="join-name" maxlength="18" placeholder="Ex.: João"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="joinRoom()">Entrar</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-lobby">
+      <div class="topbar"><button class="icon-btn" onclick="showScreen('home')">←</button><div class="topbar-title">LOBBY</div><button class="icon-btn" onclick="copyCode()">⧉</button></div>
+      <div class="card room-code-card"><div class="room-code-label">CÓDIGO DA SALA</div><div class="room-code" id="room-code">482731</div><div class="copy-hint">Toque no ícone acima para copiar</div></div>
+      <div class="section-head"><h3>Jogadores</h3><div class="count-pill"><span id="player-count">4</span> / 10</div></div>
+      <div class="players">
+        <div class="player"><div class="avatar">N</div><div class="player-info"><div class="player-name" id="host-name">Nicolas</div><div class="player-meta">Host da sala</div></div><div class="host-badge">HOST</div></div>
+        <div class="player"><div class="avatar">J</div><div class="player-info"><div class="player-name">João</div><div class="player-meta">Pronto</div></div><div class="online-dot"></div></div>
+        <div class="player"><div class="avatar">P</div><div class="player-info"><div class="player-name">Pedro</div><div class="player-meta">Pronto</div></div><div class="online-dot"></div></div>
+        <div class="player"><div class="avatar">L</div><div class="player-info"><div class="player-name">Lucas</div><div class="player-meta">Pronto</div></div><div class="online-dot"></div></div>
+      </div>
+      <div class="footer-action"><button class="btn btn-danger" style="width:100%" onclick="revealRole()">Iniciar partida</button></div>
+    </section>
+
+    <section class="screen" id="screen-role">
+      <div class="topbar"><div style="width:44px"></div><div class="topbar-title">SEU PAPEL</div><div style="width:44px"></div></div>
+      <div class="reveal-wrap">
+        <div class="eyebrow">Ninguém mais pode ver</div>
+        <div class="role-card"><div class="role-label">VOCÊ RECEBEU</div><div class="role-word" id="role-word">PRAIA</div><p class="role-help" id="role-help">Use pistas relacionadas à palavra, mas não seja óbvio demais.</p></div>
+        <button class="btn btn-primary" style="width:100%" onclick="showScreen('game')">Estou pronto</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-game">
+      <div class="topbar"><button class="icon-btn" onclick="showScreen('lobby')">←</button><div class="topbar-title">SALA <span id="game-room-code">482731</span></div><button class="icon-btn" onclick="showScreen('vote')">⚑</button></div>
+      <div class="status-row">
+        <div class="round-pill"><div class="status-label">RODADA</div><div class="status-value" id="round-value">2</div></div>
+        <div class="turn-pill"><div class="status-label">VEZ DE</div><div class="status-value" id="turn-value">Nicolas</div></div>
+      </div>
+      <div class="card game-card">
+        <div class="game-head"><div class="game-head-left"><div class="avatar" id="current-avatar">N</div><div><strong id="current-player">Nicolas está falando</strong><div class="muted" style="font-size:11px;margin-top:2px">Dê uma pista relacionada</div></div></div><div class="live"><i></i> AO VIVO</div></div>
+        <div class="messages" id="messages">
+          <div class="system-line">Rodada 1</div>
+          <div class="msg"><div class="mini">🤖</div><div class="bubble system"><div class="msg-name">JOGO</div><div class="msg-text">Pista inicial: <strong>Areia</strong></div></div></div>
+          <div class="msg"><div class="mini">N</div><div class="bubble"><div class="msg-name">Nicolas</div><div class="msg-text">Verão</div></div></div>
+          <div class="msg"><div class="mini">J</div><div class="bubble"><div class="msg-name">João</div><div class="msg-text">Sol</div></div></div>
+          <div class="msg"><div class="mini">P</div><div class="bubble"><div class="msg-name">Pedro</div><div class="msg-text">Mar</div></div></div>
+          <div class="msg"><div class="mini">L</div><div class="bubble"><div class="msg-name">Lucas</div><div class="msg-text">Férias</div></div></div>
+          <div class="system-line">Rodada 2</div>
+        </div>
+        <div class="composer">
+          <div class="composer-row"><input class="input" id="clue-input" maxlength="40" placeholder="Digite sua pista..."><button class="send-btn" onclick="sendClue()">↑</button></div>
+          <button class="guess-btn" id="guess-button" onclick="openGuessModal()">Adivinhar palavra • 2 tentativas</button>
+        </div>
+      </div>
+      <div class="vote-open"><small>Após 2 rodadas completas, qualquer jogador pode iniciar uma votação.</small><button onclick="showScreen('vote')">Votar</button></div>
+    </section>
+
+    <section class="screen" id="screen-vote">
+      <div class="topbar"><button class="icon-btn" onclick="showScreen('game')">←</button><div class="topbar-title">VOTAÇÃO</div><div style="width:44px"></div></div>
+      <div><div class="eyebrow">Decisão do grupo</div><h2 style="font-size:28px;margin:8px 0 8px">Quem é o impostor?</h2><p class="muted" style="margin:0;line-height:1.5">Seu voto fica bloqueado após confirmar.</p></div>
+      <div class="vote-list">
+        <label class="vote-option"><input type="radio" name="vote" value="Nicolas"><span class="vote-label"><span class="avatar">N</span><span style="font-weight:900">Nicolas</span><span class="vote-check"></span></span></label>
+        <label class="vote-option"><input type="radio" name="vote" value="João"><span class="vote-label"><span class="avatar">J</span><span style="font-weight:900">João</span><span class="vote-check"></span></span></label>
+        <label class="vote-option"><input type="radio" name="vote" value="Pedro"><span class="vote-label"><span class="avatar">P</span><span style="font-weight:900">Pedro</span><span class="vote-check"></span></span></label>
+        <label class="vote-option"><input type="radio" name="vote" value="Lucas"><span class="vote-label"><span class="avatar">L</span><span style="font-weight:900">Lucas</span><span class="vote-check"></span></span></label>
+      </div>
+      <div class="footer-action"><button class="btn btn-danger" style="width:100%" onclick="confirmVote()">Confirmar voto</button></div>
+    </section>
+
+    <section class="screen" id="screen-result">
+      <div class="result-wrap">
+        <div class="result-orb"></div><div class="eyebrow">Fim de jogo</div><h2 class="result-title">O impostor foi descoberto.</h2>
+        <p class="result-sub">O grupo votou em <strong style="color:var(--text)">João</strong>. A identidade foi revelada.</p>
+        <div class="result-secret"><span>PALAVRA SECRETA</span><strong>PRAIA</strong></div>
+        <div class="stack"><button class="btn btn-primary" onclick="showScreen('lobby')">Jogar novamente</button><button class="btn btn-dark" onclick="showScreen('home')">Voltar ao início</button></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="guess-modal">
+    <div class="modal">
+      <h3>Adivinhar a palavra</h3><p>Você tem apenas duas tentativas durante a partida. Use com cuidado.</p>
+      <div class="attempts"><div class="attempt-dot" id="attempt-1"></div><div class="attempt-dot" id="attempt-2"></div></div>
+      <input class="input" id="guess-input" placeholder="Qual é a palavra?" autocomplete="off">
+      <div class="stack" style="margin-top:12px"><button class="btn btn-danger" onclick="submitGuess()">Confirmar tentativa</button><button class="btn btn-ghost" onclick="closeGuessModal()">Cancelar</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Copiado</div>
+
+  <script>
+    const state={roomCode:"482731",playerName:"Nicolas",isImpostor:false,attempts:2,turnIndex:0,round:2,players:["Nicolas","João","Pedro","Lucas"]};
+    function showScreen(name){document.querySelectorAll(".screen").forEach(el=>el.classList.remove("active"));const screen=document.getElementById("screen-"+name);if(screen)screen.classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}
+    function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove("show"),1800)}
+    function randomCode(){return String(Math.floor(100000+Math.random()*900000))}
+    function createRoom(){const name=document.getElementById("create-name").value.trim();if(!name)return toast("Digite seu nome");state.playerName=name;state.roomCode=randomCode();syncRoomUI();showScreen("lobby")}
+    function joinRoom(){const code=document.getElementById("join-code").value.replace(/\D/g,"");const name=document.getElementById("join-name").value.trim();if(code.length!==6)return toast("O código precisa ter 6 números");if(!name)return toast("Digite seu nome");state.playerName=name;state.roomCode=code;syncRoomUI();showScreen("lobby")}
+    function syncRoomUI(){document.getElementById("room-code").textContent=state.roomCode;document.getElementById("game-room-code").textContent=state.roomCode;document.getElementById("host-name").textContent=state.playerName}
+    function copyCode(){if(navigator.clipboard){navigator.clipboard.writeText(state.roomCode).then(()=>toast("Código copiado"))}else{toast("Código: "+state.roomCode)}}
+    function revealRole(){state.isImpostor=Math.random()<.45;const word=document.getElementById("role-word"),help=document.getElementById("role-help"),guessButton=document.getElementById("guess-button");if(state.isImpostor){word.textContent="IMPOSTOR";word.classList.add("impostor");help.textContent="Observe as pistas, improvise e tente descobrir a palavra antes de ser eliminado.";guessButton.style.display="block"}else{word.textContent="PRAIA";word.classList.remove("impostor");help.textContent="Use pistas relacionadas à palavra, mas não seja óbvio demais.";guessButton.style.display="none"}showScreen("role")}
+    function addMessage(name,text){const initials=name==="JOGO"?"🤖":name.charAt(0).toUpperCase();const messages=document.getElementById("messages");const wrap=document.createElement("div");wrap.className="msg";wrap.innerHTML=`<div class="mini">${initials}</div><div class="bubble"><div class="msg-name">${escapeHtml(name)}</div><div class="msg-text">${escapeHtml(text)}</div></div>`;messages.appendChild(wrap);messages.scrollTop=messages.scrollHeight}
+    function addRoundDivider(round){const messages=document.getElementById("messages");const div=document.createElement("div");div.className="system-line";div.textContent="Rodada "+round;messages.appendChild(div);messages.scrollTop=messages.scrollHeight}
+    function sendClue(){const input=document.getElementById("clue-input");const text=input.value.trim();if(!text)return toast("Digite uma pista");const currentName=state.players[state.turnIndex];addMessage(currentName,text);input.value="";state.turnIndex++;if(state.turnIndex>=state.players.length){state.turnIndex=0;state.round++;addRoundDivider(state.round);document.getElementById("round-value").textContent=state.round}updateTurn()}
+    function updateTurn(){const name=state.players[state.turnIndex];document.getElementById("turn-value").textContent=name;document.getElementById("current-player").textContent=name+" está falando";document.getElementById("current-avatar").textContent=name.charAt(0).toUpperCase()}
+    function openGuessModal(){if(!state.isImpostor)return;if(state.attempts<=0)return toast("Você não tem mais tentativas");document.getElementById("guess-modal").classList.add("show");setTimeout(()=>document.getElementById("guess-input").focus(),80)}
+    function closeGuessModal(){document.getElementById("guess-modal").classList.remove("show");document.getElementById("guess-input").value=""}
+    function submitGuess(){const guess=document.getElementById("guess-input").value.trim().toLowerCase();if(!guess)return toast("Digite uma palavra");if(guess==="praia"){closeGuessModal();document.querySelector("#screen-result .result-title").textContent="O impostor venceu.";document.querySelector("#screen-result .result-sub").innerHTML="O impostor conseguiu descobrir a palavra antes de ser eliminado.";showScreen("result");return}state.attempts--;document.getElementById("guess-button").textContent=`Adivinhar palavra • ${state.attempts} tentativa${state.attempts===1?"":"s"}`;if(state.attempts===1){document.getElementById("attempt-2").style.opacity=".18";toast("Errado. Última tentativa.");document.getElementById("guess-input").value=""}else{document.getElementById("attempt-1").style.opacity=".18";closeGuessModal();toast("Você gastou as duas tentativas")}}
+    function confirmVote(){const selected=document.querySelector('input[name="vote"]:checked');if(!selected)return toast("Escolha um jogador");toast("Voto confirmado em "+selected.value);setTimeout(()=>showScreen("result"),650)}
+    function escapeHtml(value){return value.replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[char])}
+    document.getElementById("join-code").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,6)});
+    document.getElementById("clue-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendClue()});
+    document.getElementById("guess-input").addEventListener("keydown",e=>{if(e.key==="Enter")submitGuess()});
+    updateTurn();
+  </script>
+</body>
+</html>
