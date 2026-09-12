@@ -54,12 +54,13 @@ async function refreshState({quiet=true}={}){
 function startSync(){
   stopSync();
   if(!session?.code)return;
-  realtimeChannel=supabase.channel(`impostor-${session.code}-${Math.random().toString(36).slice(2)}`)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_events',filter:`room_code=eq.${session.code}`},()=>refreshState())
+  realtimeChannel=supabase.channel(`impostor-${state?.room?.syncKey||session.code}`,{config:{broadcast:{self:false}}})
+    .on('broadcast',{event:'refresh'},()=>refreshState())
     .subscribe(status=>{ online=status==='SUBSCRIBED'||navigator.onLine; setConnection(); });
   pollTimer=setInterval(()=>refreshState(),3000);
 }
 function stopSync(){ if(realtimeChannel){supabase.removeChannel(realtimeChannel);realtimeChannel=null;} if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
+function notifyRoom(){ try{ realtimeChannel?.send({type:'broadcast',event:'refresh',payload:{at:Date.now()}}); }catch{} }
 
 function renderState(){
   if(!state)return;
@@ -155,21 +156,22 @@ function renderResult(){
 async function createRoom(){
   if(actionBusy)return; const name=$('create-name').value.trim(); if(!name)return toast('Digite seu nome.');
   actionBusy=true; setButtonBusy($('create-submit'),true,'Criando');
-  try{ const data=await rpc('imp_create_room',{p_name:name}); saveSession({code:data.state.room.code,token:data.token}); state=data.state; localStorage.removeItem(ROLE_SEEN_PREFIX+session.code); startSync(); renderState(); }
+  try{ const data=await rpc('imp_create_room',{p_name:name}); saveSession({code:data.state.room.code,token:data.token}); state=data.state; localStorage.removeItem(ROLE_SEEN_PREFIX+session.code); startSync(); notifyRoom(); renderState(); }
   catch(err){toast(err.message)} finally{actionBusy=false;setButtonBusy($('create-submit'),false)}
 }
 async function joinRoom(){
   if(actionBusy)return; const code=$('join-code').value.replace(/\D/g,''); const name=$('join-name').value.trim(); if(code.length!==6)return toast('O código precisa ter 6 números.'); if(!name)return toast('Digite seu nome.');
   actionBusy=true;setButtonBusy($('join-submit'),true,'Entrando');
-  try{const data=await rpc('imp_join_room',{p_code:code,p_name:name});saveSession({code:data.state.room.code,token:data.token});state=data.state;localStorage.removeItem(ROLE_SEEN_PREFIX+session.code);startSync();renderState();}
+  try{const data=await rpc('imp_join_room',{p_code:code,p_name:name});saveSession({code:data.state.room.code,token:data.token});state=data.state;localStorage.removeItem(ROLE_SEEN_PREFIX+session.code);startSync();notifyRoom();renderState();}
   catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('join-submit'),false)}
 }
-async function startGame(){ if(actionBusy)return; actionBusy=true;setButtonBusy($('start-game'),true,'Iniciando');try{state=await rpc('imp_start_game',{p_code:session.code,p_token:session.token});localStorage.removeItem(ROLE_SEEN_PREFIX+session.code);renderState();}catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('start-game'),false)} }
-async function submitClue(){ if(actionBusy)return;const text=$('clue-input').value.trim();if(!text)return toast('Digite uma pista.');actionBusy=true;$('send-clue').disabled=true;try{state=await rpc('imp_submit_clue',{p_code:session.code,p_token:session.token,p_text:text});$('clue-input').value='';renderState();}catch(err){toast(err.message)}finally{actionBusy=false;renderGame()} }
-async function startVote(){ if(actionBusy||!state?.room?.canStartVote)return;actionBusy=true;try{state=await rpc('imp_start_vote',{p_code:session.code,p_token:session.token});renderState();}catch(err){toast(err.message)}finally{actionBusy=false} }
-async function confirmVote(){ if(actionBusy)return;const selected=document.querySelector('input[name="vote"]:checked');if(!selected)return toast('Escolha um jogador.');actionBusy=true;setButtonBusy($('confirm-vote'),true,'Votando');try{state=await rpc('imp_vote',{p_code:session.code,p_token:session.token,p_target_player_id:selected.value});renderState();}catch(err){toast(err.message)}finally{actionBusy=false;if(state?.room?.status==='voting')renderVote()} }
-async function submitGuess(){ if(actionBusy)return;const guess=$('guess-input').value.trim();if(!guess)return toast('Digite uma palavra.');actionBusy=true;setButtonBusy($('submit-guess'),true,'Verificando');try{const data=await rpc('imp_guess',{p_code:session.code,p_token:session.token,p_guess:guess});state=data.state;closeGuess();if(data.correct)toast('Você acertou a palavra!');else toast(state.self.attemptsRemaining?`Errado. Restam ${state.self.attemptsRemaining} tentativa(s).`:'Errado. Suas tentativas acabaram.');renderState();}catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('submit-guess'),false)} }
-async function closeRoom(){ if(!session)return; if(state?.self?.isHost){ try{await rpc('imp_close_room',{p_code:session.code,p_token:session.token});}catch{} } clearLocalSession();showScreen('home'); }
+async function startGame(){ if(actionBusy)return; actionBusy=true;setButtonBusy($('start-game'),true,'Iniciando');try{state=await rpc('imp_start_game',{p_code:session.code,p_token:session.token});localStorage.removeItem(ROLE_SEEN_PREFIX+session.code);notifyRoom();renderState();}catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('start-game'),false)} }
+async function submitClue(){ if(actionBusy)return;const text=$('clue-input').value.trim();if(!text)return toast('Digite uma pista.');actionBusy=true;$('send-clue').disabled=true;try{state=await rpc('imp_submit_clue',{p_code:session.code,p_token:session.token,p_text:text});$('clue-input').value='';notifyRoom();renderState();}catch(err){toast(err.message)}finally{actionBusy=false;renderGame()} }
+async function startVote(){ if(actionBusy||!state?.room?.canStartVote)return;actionBusy=true;try{state=await rpc('imp_start_vote',{p_code:session.code,p_token:session.token});notifyRoom();renderState();}catch(err){toast(err.message)}finally{actionBusy=false} }
+async function confirmVote(){ if(actionBusy)return;const selected=document.querySelector('input[name="vote"]:checked');if(!selected)return toast('Escolha um jogador.');actionBusy=true;setButtonBusy($('confirm-vote'),true,'Votando');try{state=await rpc('imp_vote',{p_code:session.code,p_token:session.token,p_target_player_id:selected.value});notifyRoom();renderState();}catch(err){toast(err.message)}finally{actionBusy=false;if(state?.room?.status==='voting')renderVote()} }
+async function submitGuess(){ if(actionBusy)return;const guess=$('guess-input').value.trim();if(!guess)return toast('Digite uma palavra.');actionBusy=true;setButtonBusy($('submit-guess'),true,'Verificando');try{const data=await rpc('imp_guess',{p_code:session.code,p_token:session.token,p_guess:guess});state=data.state;notifyRoom();closeGuess();if(data.correct)toast('Você acertou a palavra!');else toast(state.self.attemptsRemaining?`Errado. Restam ${state.self.attemptsRemaining} tentativa(s).`:'Errado. Suas tentativas acabaram.');renderState();}catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('submit-guess'),false)} }
+async function closeCurrentRoom(){ if(!session)return; if(state?.self?.isHost){ try{await rpc('imp_close_room',{p_code:session.code,p_token:session.token});notifyRoom();}catch{} } clearLocalSession(); }
+async function leaveLobby(){ if(!session)return showScreen('home'); try{await rpc('imp_leave_room',{p_code:session.code,p_token:session.token});notifyRoom();}catch(err){toast(err.message);return;} clearLocalSession();showScreen('home'); }
 
 function openGuess(){ const used=state?.self?.attemptsUsed||0;$('attempt-1').classList.toggle('used',used>=1);$('attempt-2').classList.toggle('used',used>=2);$('guess-input').value='';$('guess-modal').classList.add('show');setTimeout(()=>$('guess-input').focus(),70); }
 function closeGuess(){ $('guess-modal').classList.remove('show');$('guess-input').value=''; }
@@ -178,10 +180,10 @@ $('home-create').addEventListener('click',()=>showScreen('create')); $('home-joi
 $('create-submit').addEventListener('click',createRoom); $('join-submit').addEventListener('click',joinRoom); $('start-game').addEventListener('click',startGame); $('send-clue').addEventListener('click',submitClue); $('start-vote').addEventListener('click',startVote); $('confirm-vote').addEventListener('click',confirmVote);
 $('copy-code').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state?.room?.code||'');toast('Código copiado.')}catch{toast(`Código: ${state?.room?.code||''}`)}});
 $('role-ready').addEventListener('click',()=>{markRoleSeen();renderState()}); $('guess-button').addEventListener('click',openGuess); $('cancel-guess').addEventListener('click',closeGuess); $('submit-guess').addEventListener('click',submitGuess);
-$('lobby-exit').addEventListener('click',()=>{clearLocalSession();showScreen('home')}); $('game-exit').addEventListener('click',()=>toast('A partida continua enquanto a sala estiver ativa.'));
-$('new-room').addEventListener('click',async()=>{if(state?.self?.isHost)await closeRoom();else{clearLocalSession();showScreen('create')}}); $('finish-home').addEventListener('click',async()=>{if(state?.self?.isHost)await closeRoom();else{clearLocalSession();showScreen('home')}});
+$('lobby-exit').addEventListener('click',leaveLobby); $('game-exit').addEventListener('click',()=>toast('A partida continua enquanto a sala estiver ativa.'));
+$('new-room').addEventListener('click',async()=>{await closeCurrentRoom();showScreen('create')}); $('finish-home').addEventListener('click',async()=>{await closeCurrentRoom();showScreen('home')});
 $('join-code').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,6)); $('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitClue()}); $('guess-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitGuess()});
 window.addEventListener('online',()=>{online=true;setConnection();refreshState()}); window.addEventListener('offline',()=>{online=false;setConnection()});
 
-async function boot(){ setConnection(); if(session?.code&&session?.token){ startSync(); await refreshState({quiet:false}); } else showScreen('home'); }
+async function boot(){ setConnection(); if(session?.code&&session?.token){ await refreshState({quiet:false}); if(state)startSync(); } else showScreen('home'); }
 boot();
