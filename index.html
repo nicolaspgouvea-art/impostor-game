@@ -48,13 +48,14 @@
       <div class="composer"><div class="composer-row"><input class="input" id="clue-input" maxlength="40" placeholder="Digite sua pista..."><button class="send-btn" id="send-clue">↑</button></div><div class="turn-wait" id="turn-wait"></div><button class="guess-btn" id="guess-button" hidden>Adivinhar palavra</button></div>
     </div>
     <div class="vote-open locked" id="vote-open"><small id="vote-help">A votação libera após 2 rodadas completas.</small><button id="start-vote">Votar</button></div>
+    <button class="btn btn-ghost" id="end-game" hidden style="width:100%;margin-top:12px;color:var(--accent2);border-color:rgba(229,57,53,.24)">Encerrar partida</button>
   </section>
 
   <section class="screen" id="screen-vote">
     <div class="topbar"><div style="width:44px"></div><div class="topbar-title">VOTAÇÃO</div><div style="width:44px"></div></div>
     <div><div class="eyebrow">Decisão do grupo</div><h2 style="font-size:28px;margin:8px 0">Quem é o impostor?</h2><p class="muted" style="margin:0;line-height:1.5">Escolha uma pessoa. Você não pode votar em si mesmo.</p></div>
     <div class="vote-list" id="vote-list"></div><div class="vote-progress" id="vote-progress"></div>
-    <div class="footer-action"><button class="btn btn-danger" id="confirm-vote" style="width:100%">Confirmar voto</button></div>
+    <div class="footer-action"><div class="stack"><button class="btn btn-danger" id="confirm-vote" style="width:100%">Confirmar voto</button><button class="btn btn-ghost" id="end-game-vote" hidden style="width:100%;color:var(--accent2);border-color:rgba(229,57,53,.24)">Encerrar partida</button></div></div>
   </section>
 
   <section class="screen" id="screen-result">
@@ -63,6 +64,9 @@
 </main>
 
 <div class="modal-backdrop" id="guess-modal"><div class="modal"><h3>Adivinhar a palavra</h3><p>Você tem somente duas tentativas durante toda a partida.</p><div class="attempts"><div class="attempt-dot" id="attempt-1"></div><div class="attempt-dot" id="attempt-2"></div></div><input class="input" id="guess-input" maxlength="40" placeholder="Qual é a palavra?" autocomplete="off"><div class="stack" style="margin-top:12px"><button class="btn btn-danger" id="submit-guess">Confirmar tentativa</button><button class="btn btn-ghost" id="cancel-guess">Cancelar</button></div></div></div>
+
+<div class="modal-backdrop" id="end-modal"><div class="modal"><h3>Encerrar partida?</h3><p>Isso vai fechar a sala para todos os jogadores. Todos voltarão para o início e o código deixará de funcionar.</p><div class="stack"><button class="btn btn-danger" id="confirm-end-game">Encerrar para todos</button><button class="btn btn-ghost" id="cancel-end-game">Cancelar</button></div></div></div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module" src="app.js"></script>
