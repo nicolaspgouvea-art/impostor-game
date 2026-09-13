@@ -16,9 +16,17 @@ Jogo social de dedução multiplayer para navegador, com frontend mobile-first n
 
 ## Estrutura do frontend
 
-- `index.html` — telas e estrutura da interface.
+- `index.html` — telas, acessibilidade básica e import map dos módulos.
 - `styles.css` — design mobile-first escuro.
-- `app.js` — conexão com Supabase, estado, salas, turnos, votação e sincronização.
+- `app.js` — ponto de entrada mínimo da aplicação.
+- `src/config.js` — configuração, versão e cliente Supabase.
+- `src/store.js` — sessão e estado local.
+- `src/api.js` — acesso centralizado às RPCs do jogo.
+- `src/ui.js` — renderização das telas e componentes.
+- `src/sync.js` — Realtime, polling adaptativo e reconexão.
+- `src/controller.js` — ações e eventos do jogo.
+- `src/version.js` — detecção automática de nova versão publicada.
+- `version.json` — versão publicada usada para evitar cache antigo.
 - `themes/themes.json` — catálogo versionado com 100 temas e pistas iniciais.
 
 ## Backend
@@ -29,9 +37,11 @@ O frontend chama RPCs específicas para criar/entrar em sala, obter estado, inic
 
 Cada jogador recebe um token aleatório. Apenas o hash SHA-256 desse token é armazenado no banco. A palavra secreta e a identidade do impostor não são expostas por consultas diretas.
 
-## Sincronização
+## Sincronização e atualização
 
-O cliente usa Supabase Realtime Broadcast para avisar os outros jogadores de mudanças e então busca novamente o estado autoritativo. Existe também polling periódico como fallback de reconexão.
+O cliente usa Supabase Realtime Broadcast para avisar os outros jogadores de mudanças e então busca novamente o estado autoritativo. Existe polling adaptativo como fallback: mais frequente com a aba aberta e mais leve em segundo plano.
+
+Ao voltar para a aba, recuperar a conexão ou focar novamente a janela, o estado é atualizado imediatamente. O frontend também consulta `version.json`; quando uma nova versão é publicada no GitHub Pages, o navegador recarrega a aplicação com uma versão de URL nova para reduzir problemas de cache antigo.
 
 ## Salas temporárias
 
@@ -48,3 +58,4 @@ O cliente usa Supabase Realtime Broadcast para avisar os outros jogadores de mud
 - Uma nova votação só fica disponível após avançar para uma rodada posterior.
 - Empate ou acusação errada não elimina ninguém.
 - Impostor: 2 tentativas para descobrir a palavra.
+- O host pode encerrar a partida para todos a qualquer momento durante o jogo ou votação.
