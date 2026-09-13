@@ -46,8 +46,9 @@ async function refreshState({quiet=true}={}){
     state=next; online=true; setConnection(); renderState();
   }catch(err){
     online=false; setConnection();
-    if(!quiet)toast(err.message);
-    if(/não pertence|expirou|não encontrada/i.test(err.message)){ clearLocalSession(); showScreen('home'); }
+    const roomGone=/não pertence|expirou|não encontrada/i.test(err.message);
+    if(!quiet||roomGone)toast(roomGone?'A sala foi encerrada.':err.message);
+    if(roomGone){ clearLocalSession(); showScreen('home'); }
   }finally{refreshBusy=false;}
 }
 
@@ -115,6 +116,7 @@ function renderGame(){
   $('turn-wait').textContent=myTurn?'Você tem a palavra. Escolha uma pista curta.':`Aguarde ${current?.name||'o próximo jogador'} enviar.`;
   $('guess-button').hidden=!state.self.canGuess;
   if(state.self.canGuess)$('guess-button').textContent=`Adivinhar palavra • ${state.self.attemptsRemaining} tentativa${state.self.attemptsRemaining===1?'':'s'}`;
+  $('end-game').hidden=!state.self.isHost;
   renderMessages();
   const vote=$('vote-open'); vote.classList.toggle('locked',!state.room.canStartVote);
   $('start-vote').disabled=!state.room.canStartVote;
@@ -145,6 +147,7 @@ function renderVote(){
   const v=state.voting||{submitted:0,total:state.players.length,hasVoted:false};
   $('vote-progress').textContent=v.hasVoted?`Voto enviado • aguardando ${Math.max(0,v.total-v.submitted)} jogador(es)`:`${v.submitted} de ${v.total} votos enviados`;
   $('confirm-vote').disabled=!!v.hasVoted; $('confirm-vote').textContent=v.hasVoted?'Voto confirmado':'Confirmar voto';
+  $('end-game-vote').hidden=!state.self.isHost;
 }
 
 function renderResult(){
@@ -172,15 +175,27 @@ async function confirmVote(){ if(actionBusy)return;const selected=document.query
 async function submitGuess(){ if(actionBusy)return;const guess=$('guess-input').value.trim();if(!guess)return toast('Digite uma palavra.');actionBusy=true;setButtonBusy($('submit-guess'),true,'Verificando');try{const data=await rpc('imp_guess',{p_code:session.code,p_token:session.token,p_guess:guess});state=data.state;notifyRoom();closeGuess();if(data.correct)toast('Você acertou a palavra!');else toast(state.self.attemptsRemaining?`Errado. Restam ${state.self.attemptsRemaining} tentativa(s).`:'Errado. Suas tentativas acabaram.');renderState();}catch(err){toast(err.message)}finally{actionBusy=false;setButtonBusy($('submit-guess'),false)} }
 async function closeCurrentRoom(){ if(!session)return; if(state?.self?.isHost){ try{await rpc('imp_close_room',{p_code:session.code,p_token:session.token});notifyRoom();}catch{} } clearLocalSession(); }
 async function leaveLobby(){ if(!session)return showScreen('home'); try{await rpc('imp_leave_room',{p_code:session.code,p_token:session.token});notifyRoom();}catch(err){toast(err.message);return;} clearLocalSession();showScreen('home'); }
+async function endGameByHost(){
+  if(actionBusy||!session||!state?.self?.isHost)return;
+  actionBusy=true; setButtonBusy($('confirm-end-game'),true,'Encerrando');
+  try{
+    await rpc('imp_close_room',{p_code:session.code,p_token:session.token});
+    notifyRoom(); closeEndModal(); clearLocalSession(); showScreen('home'); toast('Partida encerrada para todos.');
+  }catch(err){ toast(err.message); }
+  finally{ actionBusy=false; setButtonBusy($('confirm-end-game'),false); }
+}
 
 function openGuess(){ const used=state?.self?.attemptsUsed||0;$('attempt-1').classList.toggle('used',used>=1);$('attempt-2').classList.toggle('used',used>=2);$('guess-input').value='';$('guess-modal').classList.add('show');setTimeout(()=>$('guess-input').focus(),70); }
 function closeGuess(){ $('guess-modal').classList.remove('show');$('guess-input').value=''; }
+function openEndModal(){ if(state?.self?.isHost)$('end-modal').classList.add('show'); }
+function closeEndModal(){ $('end-modal').classList.remove('show'); }
 
 $('home-create').addEventListener('click',()=>showScreen('create')); $('home-join').addEventListener('click',()=>showScreen('join')); document.querySelectorAll('.back-home').forEach(b=>b.addEventListener('click',()=>showScreen('home')));
 $('create-submit').addEventListener('click',createRoom); $('join-submit').addEventListener('click',joinRoom); $('start-game').addEventListener('click',startGame); $('send-clue').addEventListener('click',submitClue); $('start-vote').addEventListener('click',startVote); $('confirm-vote').addEventListener('click',confirmVote);
 $('copy-code').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state?.room?.code||'');toast('Código copiado.')}catch{toast(`Código: ${state?.room?.code||''}`)}});
 $('role-ready').addEventListener('click',()=>{markRoleSeen();renderState()}); $('guess-button').addEventListener('click',openGuess); $('cancel-guess').addEventListener('click',closeGuess); $('submit-guess').addEventListener('click',submitGuess);
-$('lobby-exit').addEventListener('click',leaveLobby); $('game-exit').addEventListener('click',()=>toast('A partida continua enquanto a sala estiver ativa.'));
+$('lobby-exit').addEventListener('click',leaveLobby); $('game-exit').addEventListener('click',()=>toast(state?.self?.isHost?'Use “Encerrar partida” para fechar a sala para todos.':'A partida continua enquanto a sala estiver ativa.'));
+$('end-game').addEventListener('click',openEndModal); $('end-game-vote').addEventListener('click',openEndModal); $('cancel-end-game').addEventListener('click',closeEndModal); $('confirm-end-game').addEventListener('click',endGameByHost);
 $('new-room').addEventListener('click',async()=>{await closeCurrentRoom();showScreen('create')}); $('finish-home').addEventListener('click',async()=>{await closeCurrentRoom();showScreen('home')});
 $('join-code').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,6)); $('clue-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitClue()}); $('guess-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitGuess()});
 window.addEventListener('online',()=>{online=true;setConnection();refreshState()}); window.addEventListener('offline',()=>{online=false;setConnection()});
